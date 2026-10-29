@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#05060a">
+  <title>WSF — Worlds Soccer Confederation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home" data-page-link="home"><img src="assets/wsf-crest.png" alt="WSF crest"><span>WSF<br><small>LEAGUE</small></span></a>
+    <a class="discord-pill" href="https://discord.gg/jVqnac4MjS" target="_blank" rel="noreferrer"><span class="discord-glyph">◉</span> Join Discord</a>
+    <div class="server-count"><span class="online-dot"></span><b id="memberStat">—</b><span>members</span><small><span id="onlineStat">—</span> online</small></div>
+    <a class="center-mark" href="#home" data-page-link="home">WSF</a>
+    <nav class="main-nav" id="mainNav" aria-label="Main navigation">
+      <a href="#home" class="active" data-page-link="home">Home</a>
+      <a href="#ticket" data-page-link="ticket">New Ticket</a>
+      <a href="#account" data-page-link="account">Account</a>
+      <a href="#staff" data-page-link="staff" class="staff-tab">Staff</a>
+      <a href="#league" data-page-link="league" class="league-nav">League</a>
+    </nav>
+    <button class="menu-button" id="menuButton" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+  </header>
+  <main>
+    <section class="page active" id="page-home" data-page="home">
+      <div class="welcome-wrap">
+        <div class="welcome-glow"></div>
+        <div class="welcome-crest"><img src="assets/wsf-crest.png" alt="Worlds Soccer Confederation"></div>
+        <div class="eyebrow"><span class="online-dot"></span> WORLD SOCCER FEDERATION</div>
+        <h1>Welcome to <span>WSF</span></h1>
+        <p class="welcome-copy">Your league home. Find your team, follow the season, and get closer to the game.</p>
+        <div class="welcome-actions"><button class="button-primary" data-go="account"><span class="discord-glyph">◉</span> Sign in with Discord</button><a class="button-secondary" href="https://discord.gg/jVqnac4MjS" target="_blank" rel="noreferrer">Join the community <span>↗</span></a></div>
+        <div class="live-caption"><span class="live-pulse"></span> LIVE FROM THE WSF DISCORD <b id="serverName">MajorX | WSF</b></div>
+      </div>
+      <div class="home-content">
+        <div class="section-heading"><div><span class="eyebrow">YOUR WSF SHORTCUTS</span><h2>What do you need?</h2></div><span class="subtle-note">Everything in one place.</span></div>
+        <div class="shortcut-grid">
+          <button class="shortcut-card" data-go="ticket"><span class="shortcut-icon icon-blue">＋</span><span class="shortcut-copy"><b>New Ticket</b><small>Get help with a league question</small></span><span class="shortcut-arrow">↗</span></button>
+          <button class="shortcut-card" data-go="account"><span class="shortcut-icon icon-green">◎</span><span class="shortcut-copy"><b>My Account</b><small>Sign in to your WSF profile</small></span><span class="shortcut-arrow">↗</span></button>
+        </div>
+        <div class="server-card"><div class="server-card-main"><span class="eyebrow">WSF DISCORD</span><h3 id="guildName">Your community, live.</h3><p>Check in with the people and clubs that make the league.</p><a href="https://discord.gg/jVqnac4MjS" target="_blank" rel="noreferrer">OPEN DISCORD <span>↗</span></a></div><div class="server-metrics"><div><b id="memberLarge">—</b><small>members</small></div><div><b id="onlineLarge">—</b><small>online now</small></div><span class="metric-live"><i></i> LIVE · UPDATES EVERY MINUTE</span></div><div class="server-decoration">WSF</div></div>
+      </div>
+    </section>
+        <section class="page league-page" id="page-league" data-page="league" hidden>
+      <div class="league-masthead">
+        <div class="league-dust" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="mast-copy"><span class="eyebrow"><span class="online-dot"></span> MAJORX XR · WSF LEAGUES</span><h1>Worlds Soccer<br><em>Federation</em></h1><p>Three competitions. One WSF.</p><div class="mast-actions"><a class="button-primary" href="https://majorx.app/xr/league?key=wsf" target="_blank" rel="noreferrer">Full MajorX league ↗</a><a class="button-secondary" href="https://discord.gg/jVqnac4MjS" target="_blank" rel="noreferrer">Join WSF Discord</a></div><div class="mast-facts"><span><b>03</b> COMPETITIONS</span><span><b>UCL</b> CUP</span><span><b>WSF</b> LEAGUE</span></div></div>
+        <div class="mast-logo"><div class="logo-orbit"></div><img src="assets/wsf-crest.png" alt="Worlds Soccer Federation crest"></div>
+        <div class="mast-swipe"><span>SCROLL DOWN TO EXPLORE</span><i>→</i></div>
+      </div>
+      <nav class="league-jumps" aria-label="Jump to league information"><span class="league-jumps-label">GO TO</span><a href="#league-standings" aria-label="View league standings">View standings</a><a href="#league-results" aria-label="View match results and upcoming fixtures">View results</a><a href="#league-season" aria-label="View season information and team stats">View season info</a></nav>
+      <div class="league-track" id="leagueTrack">
+        <section class="league-slide table-slide reveal-section" id="league-standings" aria-label="WSF MLS standings"><div class="slide-kicker">01 / WSF MLS</div><div class="slide-title-row"><div><h2>WSF MLS</h2><p>Season 3 · 12 clubs</p></div><a href="https://majorx.app/xr/league?key=wsf" target="_blank" rel="noreferrer">VIEW ON MAJORX ↗</a></div><div class="league-table-wrap"><table class="league-table"><thead><tr><th>#</th><th>CLUB</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th></tr></thead><tbody id="mlsTable"></tbody></table></div></section>
+        <section class="league-slide table-slide reveal-section" id="league-mls-next" aria-label="WSF MLS NEXT standings"><div class="slide-kicker">02 / WSF MLS NEXT</div><div class="slide-title-row"><div><h2>WSF MLS NEXT</h2><p>Season 3 · 12 clubs</p></div><a href="https://majorx.app/xr/league?key=wsf" target="_blank" rel="noreferrer">VIEW ON MAJORX ↗</a></div><div class="league-table-wrap"><table class="league-table"><thead><tr><th>#</th><th>CLUB</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th></tr></thead><tbody id="mlsNextTable"></tbody></table></div></section>
+        <section class="league-slide table-slide reveal-section" id="league-ucl" aria-label="WSF UCL standings"><div class="slide-kicker">03 / WSF UCL</div><div class="slide-title-row"><div><h2>WSF UCL</h2><p>Automatic updates need authorized MajorX XR-Board access</p></div><a href="https://majorx.app/xr/league?key=wsf" target="_blank" rel="noreferrer">VIEW ON MAJORX ↗</a></div><div class="league-table-wrap"><table class="league-table"><thead><tr><th>#</th><th>CLUB</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th></tr></thead><tbody id="uclTable"><tr><td colspan="8">Checking MajorX for WSF UCL standings…</td></tr></tbody></table></div></section>
+        <section class="league-slide results-slide reveal-section" id="league-results" aria-label="Recent results"><div class="slide-kicker">03 / MATCH CENTER</div><div class="slide-title-row"><div><h2>Recent results</h2><p>Latest scores published on MajorX XR</p></div><a href="https://majorx.app/xr/league?key=wsf" target="_blank" rel="noreferrer">ALL FIXTURES ↗</a></div><div class="results-grid" id="resultsGrid"></div><div class="upcoming-block" id="upcomingBlock" hidden><h3>Upcoming fixtures</h3><div class="results-grid" id="upcomingGrid"></div></div></section>
+        <section class="league-slide season-slide reveal-section" id="league-season" aria-label="Season information"><div class="slide-kicker">04 / SEASON CENTER</div><h2>More than the table.</h2><p class="season-lede">MajorX brings the whole WSF season together. Here’s what’s happening across Season 3.</p><div class="season-cards"><article><span>PLAYER STATS</span><b>Coming up</b><p>No player stats have been recorded for this league yet.</p></article><article><span>TEAM OF THE WEEK</span><b>Coming up</b><p>MajorX picks the team after gameweek replay ratings are in.</p></article><article><span>LEAGUE NEWS</span><b>On the way</b><p>Matchweek reports and WSF headlines will appear here.</p></article><article><span>TEAM STATS</span><b>WSF leaders</b><p><span id="teamStatsSummary">Team leaders refresh from MajorX with the standings.</span></p></article><article><span>RECENT TRANSFERS</span><b>MLS NEXT moves</b><p>MajorX lists recent loans between Grown Men FC, Derby County FC and FC Bayern, plus recent releases.</p></article></div><a class="season-source" href="https://majorx.app/xr/league?key=wsf" target="_blank" rel="noreferrer">Explore every WSF section on MajorX ↗</a></section>
+      </div>
+      <div class="league-source-note"><span id="leagueUpdated">MajorX WSF standings and scores refresh daily when the site server is running.</span></div>
+    </section>
+    <section class="page subpage" id="page-ticket" data-page="ticket" hidden><div class="subpage-card ticket-card"><div class="page-icon icon-blue">＋</div><span class="eyebrow">WSF CLAIMS</span><h1>Claim an item</h1><p>Fill in the details below to send your claim to the WSF team. Sign in with Discord first so we can identify your account.</p><button class="button-secondary claim-signin" id="claimSignin" type="button" data-go="account">Sign in with Discord</button><form class="claim-form" id="claimForm"><label>What item do you want to claim?<input name="item" required maxlength="120" placeholder="Type the item name"></label><label>Event message link<input name="messageLink" type="url" required maxlength="500" placeholder="Paste the Discord message link"><small>Each Discord event message link can only be used once.</small></label><label>VRFS Player ID<input name="playerId" required maxlength="40" placeholder="Enter your VRFS Player ID"></label><label>Discord username<input name="discordUsername" id="claimDiscordUsername" required maxlength="80" placeholder="Sign in to fill in your username"></label><fieldset><legend>Where did you win this event?</legend><div class="claim-options"><label><input type="radio" name="winLocation" value="Inside WSF" required><span>Inside WSF</span></label><label><input type="radio" name="winLocation" value="Outside WSF"><span>Outside WSF</span></label></div></fieldset><label>Message <span class="optional-label">(optional)</span><textarea name="message" maxlength="1000" placeholder="Anything else the WSF team should know?"></textarea></label><button class="button-primary" type="submit" id="claimSubmit">Submit claim</button><p class="claim-status" id="claimStatus" role="status" aria-live="polite"></p></form><a class="back-link" href="#home" data-page-link="home">← Back to Home</a></div></section>
+    <section class="page subpage" id="page-account" data-page="account" hidden><div class="subpage-card account-card"><div class="account-crest"><img src="assets/wsf-crest.png" alt="WSF crest"></div><span class="eyebrow">YOUR PLAYER PROFILE</span><h1 id="accountTitle">Your WSF Account</h1><p id="accountMessage">Sign in with Discord to access your league account.</p><button class="button-primary" id="loginBtn"><span class="discord-glyph">◉</span><span id="loginLabel">Continue with Discord</span></button><small class="account-note">Secure sign-in powered by Discord.</small><a class="back-link" href="#home" data-page-link="home">← Back to Home</a></div></section>
+    <section class="page subpage" id="page-staff" data-page="staff" hidden><div class="subpage-card"><div class="page-icon icon-green">✦</div><span class="eyebrow">WSF STAFF</span><h1>Staff Portal</h1><p>League staff tools are for authorized WSF moderators. Sign in with your Discord account to continue.</p><button class="button-primary" data-go="account"><span class="discord-glyph">◉</span> Sign in with Discord</button><a class="back-link" href="#home" data-page-link="home">← Back to Home</a></div></section>
+  </main>
+  <footer class="footer"><a class="brand" href="#home" data-page-link="home"><img src="assets/wsf-crest.png" alt=""><span>WSF<br><small>LEAGUE</small></span></a><span>WORLDS SOCCER CONFEDERATION <i></i> MADE FOR THE COMMUNITY</span><a href="https://discord.gg/jVqnac4MjS" target="_blank" rel="noreferrer">JOIN DISCORD ↗</a></footer>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
