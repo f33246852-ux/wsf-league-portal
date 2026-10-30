@@ -73,6 +73,15 @@ async function readJson(req, maxBytes = 12000) {
   for await (const chunk of req) { raw += chunk; if (Buffer.byteLength(raw) > maxBytes) throw Object.assign(new Error('The request is too large.'), { status:413 }); }
   try { return JSON.parse(raw); } catch { throw Object.assign(new Error('Please check the information and try again.'), { status:400 }); }
 }
+function normalizeDiscordMessageLink(value) {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    if (parsed.protocol !== 'https:' || !['discord.com','www.discord.com','discordapp.com','www.discordapp.com'].includes(parsed.hostname.toLowerCase())) return null;
+    const match = parsed.pathname.match(/^\/channels\/(\d{17,20}|@me)\/(\d{17,20})\/(\d{17,20})\/?$/);
+    if (!match) return null;
+    return `https://discord.com/channels/${match[1]}/${match[2]}/${match[3]}`;
+  } catch { return null; }
+}
 async function requireAccess(req, res, allowed = ['staff','owner']) {
   const user = getUser(req);
   if (!user) { send(res, 401, { error:'Sign in with Discord first.' }); return null; }
@@ -272,19 +281,17 @@ const server = http.createServer(async (req, res) => {
     try {
       for await (const chunk of req) { raw += chunk; if (raw.length > 12000) return send(res, 413, { error:'The claim is too long.' }); }
       const claim = JSON.parse(raw);
-      const fields = ['item','messageLink','playerId','discordUsername','winLocation'];
+      const fields = ['item','messageLink','playerId','winLocation'];
       if (fields.some(key => typeof claim[key] !== 'string' || !claim[key].trim())) return send(res, 400, { error:'Please complete every required field.' });
       if (!['Inside WSF','Outside WSF'].includes(claim.winLocation)) return send(res, 400, { error:'Choose where you won the event.' });
-      if (!/^https:\/\/(discord\.com|discordapp\.com)\/channels\//i.test(claim.messageLink.trim())) return send(res, 400, { error:'Paste a valid Discord message link.' });
-      const saved = { id:crypto.randomUUID(), submitted_at:new Date().toISOString(), discord_id:user.id, discord_username:user.username, item:claim.item.trim().slice(0,120), message_link:claim.messageLink.trim().slice(0,500), player_id:claim.playerId.trim().slice(0,40), submitted_username:claim.discordUsername.trim().slice(0,80), win_location:claim.winLocation, message:typeof claim.message === 'string' ? claim.message.trim().slice(0,1000) : '', status:'pending' };
+      const messageLink = normalizeDiscordMessageLink(claim.messageLink);
+      if (!messageLink) return send(res, 400, { error:'Paste the full Discord message link, including its server, channel, and message number.' });
+      const saved = { id:crypto.randomUUID(), submitted_at:new Date().toISOString(), discord_id:user.id, discord_username:user.username, item:claim.item.trim().slice(0,120), message_link:messageLink, player_id:claim.playerId.trim().slice(0,40), submitted_username:user.username, win_location:claim.winLocation, message:typeof claim.message === 'string' ? claim.message.trim().slice(0,1000) : '', status:'pending' };
       if (supabaseUrl && supabaseSecretKey) {
         let response;
         try { response = await fetch(`${supabaseUrl}/rest/v1/claim_tickets`, { method:'POST', headers:{ apikey:supabaseSecretKey, 'Content-Type':'application/json', Prefer:'return=minimal' }, body:JSON.stringify(saved) }); }
         catch { return send(res, 503, { error:'Claim storage is temporarily unreachable. Please try again later.' }); }
-        if (response.status === 409) return send(res, 409, { error:'That event message link has already been used for a claim.' });
         if (!response.ok) {
-          let detail = ''; try { detail = (await response.json()).code || ''; } catch {}
-          if (detail === '23505') return send(res, 409, { error:'That event message link has already been used for a claim.' });
           return send(res, 503, { error:'Claim storage is not ready. Please try again later.' });
         }
         return send(res, 201, { ok:true, message:'Your claim was sent to the WSF team.' });
@@ -293,7 +300,6 @@ const server = http.createServer(async (req, res) => {
       await fs.promises.mkdir(path.dirname(claimsFile), { recursive:true });
       let claims = [];
       try { claims = JSON.parse(await fs.promises.readFile(claimsFile, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-      if (claims.some(ticket => ticket.messageLink === claim.messageLink.trim())) return send(res, 409, { error:'That event message link has already been used for a claim.' });
       Object.assign(saved, { submittedAt:saved.submitted_at, discordId:saved.discord_id, messageLink:saved.message_link, playerId:saved.player_id, submittedUsername:saved.submitted_username, winLocation:saved.win_location });
       claims.push(saved);
       await fs.promises.writeFile(claimsFile, JSON.stringify(claims, null, 2), { mode:0o600 });
