@@ -47,6 +47,39 @@ function clearSession(req, res) {
   res.setHeader('Set-Cookie', 'vrfs_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
 }
 const ready = () => Boolean(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET && process.env.SESSION_SECRET && process.env.SESSION_SECRET !== 'development-only-change-me');
+const ownerDiscordId = () => /^\d{17,20}$/.test(process.env.WSF_OWNER_DISCORD_ID || '') ? process.env.WSF_OWNER_DISCORD_ID : '';
+async function supabaseRequest(table, query = '', options = {}) {
+  if (!supabaseUrl || !supabaseSecretKey) throw new Error('Ticket storage is not connected.');
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}${query ? `?${query}` : ''}`, {
+    method:options.method || 'GET',
+    headers:{ apikey:supabaseSecretKey, Authorization:`Bearer ${supabaseSecretKey}`, 'Content-Type':'application/json', Prefer:options.prefer || 'return=representation', ...(options.headers || {}) },
+    ...(options.body === undefined ? {} : { body:JSON.stringify(options.body) })
+  });
+  const text = await response.text();
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch {}
+  if (!response.ok) throw new Error(data?.message || `Ticket storage returned ${response.status}.`);
+  return data;
+}
+async function accessFor(user) {
+  if (!user) return 'none';
+  if (ownerDiscordId() && user.id === ownerDiscordId()) return 'owner';
+  try {
+    const rows = await supabaseRequest('staff_access', `discord_id=eq.${encodeURIComponent(user.id)}&select=discord_id&limit=1`);
+    return rows?.length ? 'staff' : 'member';
+  } catch { return 'member'; }
+}
+async function readJson(req, maxBytes = 12000) {
+  let raw = '';
+  for await (const chunk of req) { raw += chunk; if (Buffer.byteLength(raw) > maxBytes) throw Object.assign(new Error('The request is too large.'), { status:413 }); }
+  try { return JSON.parse(raw); } catch { throw Object.assign(new Error('Please check the information and try again.'), { status:400 }); }
+}
+async function requireAccess(req, res, allowed = ['staff','owner']) {
+  const user = getUser(req);
+  if (!user) { send(res, 401, { error:'Sign in with Discord first.' }); return null; }
+  const access = await accessFor(user);
+  if (!allowed.includes(access)) { send(res, 403, { error:'This page is only for authorized WSF staff.' }); return null; }
+  return { user, access };
+}
 
 const majorxDataUrl = 'https://majorx.app/xr/api/data';
 const wsfRefreshMs = 24 * 60 * 60 * 1000;
@@ -125,7 +158,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/wsf-league') {
     return send(res, 503, { error:'Automatic MajorX updates require authorized XR-Board API access.', source:'MajorX XR' });
   }
-  if (req.method === 'GET' && url.pathname === '/api/config') return send(res, 200, { discordReady:ready(), liveReady:Boolean(process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID), guildId:process.env.DISCORD_GUILD_ID || null });
+  if (req.method === 'GET' && url.pathname === '/api/config') return send(res, 200, { discordReady:ready(), ownerConfigured:Boolean(ownerDiscordId()), liveReady:Boolean(process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID), guildId:process.env.DISCORD_GUILD_ID || null });
   if (req.method === 'GET' && url.pathname === '/api/public-server') {
     if (publicInviteCache.value && publicInviteCache.expires > Date.now()) return send(res, 200, publicInviteCache.value);
     try {
@@ -138,7 +171,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, data);
     } catch { return send(res, 502, { error:'Discord public server counts are temporarily unavailable.' }); }
   }
-  if (req.method === 'GET' && url.pathname === '/api/me') return send(res, 200, { user:getUser(req) });
+  if (req.method === 'GET' && url.pathname === '/api/me') { const user = getUser(req); return send(res, 200, { user, access:await accessFor(user) }); }
   if (req.method === 'GET' && url.pathname === '/auth/discord') {
     if (!ready()) return send(res, 503, { error:'Discord sign-in is not configured yet. Add the credentials from .env.example.' });
     const state = crypto.randomBytes(24).toString('hex');
@@ -164,6 +197,74 @@ const server = http.createServer(async (req, res) => {
     } catch { return send(res, 502, { error:'Discord sign-in failed. Please return and try again.' }); }
   }
   if (req.method === 'POST' && url.pathname === '/auth/logout') { clearSession(req,res); return send(res, 200, { ok:true }); }
+  if (req.method === 'POST' && url.pathname === '/api/support') {
+    const user = getUser(req);
+    if (!user) return send(res, 401, { error:'Sign in with Discord before sending a support question.' });
+    try {
+      const form = await readJson(req, 8000);
+      if (typeof form.subject !== 'string' || form.subject.trim().length < 3 || form.subject.length > 120 || typeof form.category !== 'string' || !['Account','League question','Technical issue','Other'].includes(form.category) || typeof form.message !== 'string' || form.message.trim().length < 10 || form.message.length > 3000) return send(res, 400, { error:'Add a short subject and a message of at least 10 characters.' });
+      const saved = { id:crypto.randomUUID(), created_at:new Date().toISOString(), updated_at:new Date().toISOString(), discord_id:user.id, discord_username:user.username, subject:form.subject.trim(), category:form.category, message:form.message.trim(), status:'open', staff_reply:'' };
+      await supabaseRequest('support_tickets', '', { method:'POST', body:saved, prefer:'return=minimal' });
+      return send(res, 201, { ok:true, message:'Your question is in the WSF staff inbox.' });
+    } catch (error) { return send(res, error.status || 503, { error:error.status ? error.message : 'Support tickets are not ready yet. Please try again later.' }); }
+  }
+  if (req.method === 'GET' && url.pathname === '/api/my/support') {
+    const user = getUser(req); if (!user) return send(res, 401, { error:'Sign in to view your questions.' });
+    try { return send(res, 200, { tickets:await supabaseRequest('support_tickets', `discord_id=eq.${encodeURIComponent(user.id)}&select=id,created_at,subject,category,status,staff_reply&order=created_at.desc&limit=30`) }); }
+    catch { return send(res, 503, { error:'Your support history is not available yet.' }); }
+  }
+  if (req.method === 'GET' && url.pathname === '/api/my/claims') {
+    const user = getUser(req); if (!user) return send(res, 401, { error:'Sign in to view your claims.' });
+    try { return send(res, 200, { tickets:await supabaseRequest('claim_tickets', `discord_id=eq.${encodeURIComponent(user.id)}&select=id,submitted_at,item,status&order=submitted_at.desc&limit=30`) }); }
+    catch { return send(res, 503, { error:'Your claim history is not available yet.' }); }
+  }
+  if (url.pathname === '/api/staff/access' && req.method === 'GET') {
+    const auth = await requireAccess(req, res, ['owner']); if (!auth) return;
+    try { return send(res, 200, { staff:await supabaseRequest('staff_access', 'select=discord_id,discord_username,created_at,added_by&order=created_at.desc') }); }
+    catch { return send(res, 503, { error:'Staff access storage is not ready. Apply the WSF ticket database update first.' }); }
+  }
+  if (url.pathname === '/api/staff/access' && req.method === 'POST') {
+    const auth = await requireAccess(req, res, ['owner']); if (!auth) return;
+    try {
+      const body = await readJson(req, 3000); const id = String(body.discordId || '').trim(); const username = String(body.username || '').trim().slice(0,80);
+      if (!/^\d{17,20}$/.test(id) || !username) return send(res, 400, { error:'Enter their Discord User ID (the long number) and username.' });
+      if (id === auth.user.id) return send(res, 400, { error:'You are already the owner.' });
+      const entry = { discord_id:id, discord_username:username, added_by:auth.user.id, created_at:new Date().toISOString() };
+      await supabaseRequest('staff_access', '', { method:'POST', body:entry, prefer:'resolution=merge-duplicates,return=minimal' });
+      return send(res, 201, { ok:true });
+    } catch { return send(res, 503, { error:'Could not save staff access. Make sure the database update has been applied.' }); }
+  }
+  if (url.pathname === '/api/staff/access' && req.method === 'DELETE') {
+    const auth = await requireAccess(req, res, ['owner']); if (!auth) return;
+    const id = url.searchParams.get('discordId') || '';
+    if (!/^\d{17,20}$/.test(id) || id === auth.user.id) return send(res, 400, { error:'That staff account cannot be removed.' });
+    try { await supabaseRequest('staff_access', `discord_id=eq.${encodeURIComponent(id)}`, { method:'DELETE', prefer:'return=minimal' }); return send(res, 200, { ok:true }); }
+    catch { return send(res, 503, { error:'Could not update the staff list.' }); }
+  }
+  if (url.pathname === '/api/staff/tickets' && req.method === 'GET') {
+    const auth = await requireAccess(req, res); if (!auth) return;
+    const isSupport = url.searchParams.get('kind') === 'support';
+    const kind = isSupport ? 'support_tickets' : 'claim_tickets';
+    const ordering = isSupport ? 'created_at.desc.nullslast' : 'submitted_at.desc.nullslast';
+    try { return send(res, 200, { tickets:await supabaseRequest(kind, `select=*&order=${ordering}&limit=200`) }); }
+    catch { return send(res, 503, { error:'Ticket storage is not ready. Apply the WSF ticket database update first.' }); }
+  }
+  if (url.pathname.startsWith('/api/staff/tickets/') && req.method === 'PATCH') {
+    const auth = await requireAccess(req, res); if (!auth) return;
+    const pathParts = url.pathname.split('/'); const kind = pathParts[4], id = pathParts[5];
+    if (!['claims','support'].includes(kind) || !/^[0-9a-f-]{36}$/i.test(id || '')) return send(res, 404, { error:'Ticket not found.' });
+    try {
+      const body = await readJson(req, 5000); const table = kind === 'claims' ? 'claim_tickets' : 'support_tickets';
+      const allowed = kind === 'claims' ? ['pending','in_review','approved','rejected'] : ['open','in_progress','closed'];
+      if (!allowed.includes(body.status) || (body.staffNote !== undefined && (typeof body.staffNote !== 'string' || body.staffNote.length > 2000)) || (body.reply !== undefined && (typeof body.reply !== 'string' || body.reply.length > 2000))) return send(res, 400, { error:'Choose a valid status and keep your note under 2,000 characters.' });
+      const update = { status:body.status, updated_at:new Date().toISOString() };
+      if (kind === 'claims') { update.staff_note = String(body.staffNote || '').trim(); update.reviewed_at = new Date().toISOString(); update.reviewed_by = auth.user.id; }
+      else update.staff_reply = String(body.reply || '').trim();
+      const rows = await supabaseRequest(table, `id=eq.${encodeURIComponent(id)}`, { method:'PATCH', body:update });
+      if (!rows?.length) return send(res, 404, { error:'Ticket not found.' });
+      return send(res, 200, { ok:true });
+    } catch { return send(res, 503, { error:'Could not update this ticket. The database may need the WSF update applied.' }); }
+  }
   if (req.method === 'POST' && url.pathname === '/api/claims') {
     const user = getUser(req);
     if (!user) return send(res, 401, { error:'Sign in with Discord before submitting a claim.' });
@@ -226,6 +327,6 @@ const server = http.createServer(async (req, res) => {
   }
   send(res,405,{error:'Method not allowed'});
 });
-server.listen(port, '0.0.0.0', () => {
+server.listen(port, process.env.RENDER_EXTERNAL_URL ? '0.0.0.0' : '127.0.0.1', () => {
   console.log(`VRFS League Hub running at ${baseUrl}`);
 });

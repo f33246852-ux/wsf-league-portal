@@ -19,5 +19,7 @@ services:
         sync: false
       - key: DISCORD_CLIENT_SECRET
         sync: false
+      - key: WSF_OWNER_DISCORD_ID
+        sync: false
       - key: DISCORD_GUILD_ID
         value: '1517807814461100163'

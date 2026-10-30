@@ -1,6 +1,6 @@
 # WSF League Portal — Discord setup
 
-The portal uses Discord to sign members in. The WSF invite link also provides public **approximate** member and online counts, so those counts do not require a bot token. The page refreshes them every 60 seconds; the website server caches Discord's response for 60 seconds to avoid unnecessary requests. Claim tickets require Discord sign-in and are saved in the server's private `.private` folder. Automatic WSF MLS, MLS NEXT, and UCL scores need authorized MajorX XR-Board API access; MajorX currently denies automated reads from its public data endpoint. Once MajorX provides the licensed endpoint and integration details, the portal can refresh those scores daily.
+The portal uses Discord to sign members in. The WSF invite link also provides public **approximate** member and online counts, so those counts do not require a bot token. The page refreshes them every 60 seconds; the website server caches Discord's response for 60 seconds to avoid unnecessary requests. Claim tickets require Discord sign-in and are saved in the Supabase `claim_tickets` table. In production, the server uses a Supabase secret key; keep it in the host's private environment settings and never place it in browser code or share it in chat. Automatic WSF MLS, MLS NEXT, and UCL scores need authorized MajorX XR-Board API access; MajorX currently denies automated reads from its public data endpoint. Once MajorX provides the licensed endpoint and integration details, the portal can refresh those scores daily.
 
 ## What you need
 
@@ -16,6 +16,19 @@ The portal uses Discord to sign members in. The WSF invite link also provides pu
 5. Once you have hosted the site, add the hosted callback too, in this format: `https://YOUR-SITE-DOMAIN/auth/callback`. It must exactly match the website’s `BASE_URL` plus `/auth/callback`.
 
 The portal asks members to approve the `identify` and `guilds` permissions. It uses these to show their Discord profile and confirm that they belong to the WSF server.
+
+## Staff desk and tickets
+
+Members sign in with Discord to submit an item claim or a private support question. Staff sign in with the same Discord button; the server checks their Discord account against the private `staff_access` table. Staff can read/review claims, update claim status and private review notes, and answer support questions. Only the owner account can add or remove staff.
+
+Before using the staff desk on Render:
+
+1. In Supabase → SQL Editor, run the updated `supabase-setup.sql` file. It creates the staff and support tables and adds review fields to existing claim tickets.
+2. In Render → the WSF service → Environment, add `WSF_OWNER_DISCORD_ID` with your Discord User ID (a long number, not your username), then save and redeploy.
+3. In Discord, turn on User Settings → Advanced → Developer Mode. Right-click your own profile and choose **Copy User ID**. Paste that number into the Render setting. Do not put the Discord application secret in this field.
+4. Open the website, sign in with the same Discord account, then choose **Staff**. The owner section lets you add staff using each person's Discord User ID and username.
+
+The Discord User ID is a public account identifier, but the Render environment setting ensures only the account that signs in as that ID gets owner controls. Never grant owner access by sharing an application secret.
 
 ## 2. Add the values to the website
 
